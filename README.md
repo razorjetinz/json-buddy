@@ -2,7 +2,7 @@
 
 A lightweight, beginner-friendly JSON formatter, validator and minifier. JSON Buddy runs entirely in your browser using plain HTML, CSS and JavaScript. It has no dependencies, build step, server or account requirement.
 
-**Live app:** https://razorjetinz.github.io/json-buddy/
+**GitHub Pages URL (after enabling Pages):** https://razorjetinz.github.io/json-buddy/
 
 ## Features
 

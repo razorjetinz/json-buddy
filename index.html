@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A simple, private JSON formatter, validator and minifier that runs in your browser.">
+  <meta name="theme-color" content="#172554">
+  <title>JSON Buddy — Format, validate and minify JSON</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page:#f3f6fb; --surface:#fff; --surface-2:#f8fafc; --text:#172033;
+      --muted:#68758b; --border:#dbe3ef; --accent:#2563eb; --accent-hover:#1d4ed8;
+      --success:#15803d; --success-bg:#ecfdf3; --danger:#b91c1c; --danger-bg:#fef2f2;
+      --shadow:0 12px 32px rgba(15,23,42,.07); --editor:#fbfcff;
+    }
+    [data-theme="dark"] {
+      color-scheme:dark; --page:#0b1220; --surface:#111c2e; --surface-2:#172438;
+      --text:#e5edf8; --muted:#9aabc2; --border:#2b3b52; --accent:#3b82f6;
+      --accent-hover:#60a5fa; --success:#4ade80; --success-bg:#123225;
+      --danger:#f87171; --danger-bg:#3a1c24; --shadow:0 12px 32px rgba(0,0,0,.2);
+      --editor:#0d1728;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--page);color:var(--text);
+      font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,select,textarea{font:inherit}
+    .shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:30px 0 44px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .brand-mark{display:grid;place-items:center;width:48px;height:48px;flex:0 0 auto;border-radius:15px;
+      background:#dbeafe;color:#1d4ed8;font:800 18px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+    [data-theme="dark"] .brand-mark{background:#1e3a5f;color:#bfdbfe}
+    h1{margin:0;font-size:clamp(22px,4vw,29px);letter-spacing:-.035em;line-height:1.15}
+    .tagline{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .icon-button,.button,select{border:1px solid var(--border);border-radius:10px;background:var(--surface);
+      color:var(--text);min-height:40px;padding:8px 12px;cursor:pointer}
+    .icon-button{min-width:42px;font-size:17px}
+    .button{font-weight:650;font-size:13px}
+    .button:hover,.icon-button:hover,select:hover{border-color:var(--accent)}
+    .button:active,.icon-button:active{transform:translateY(1px)}
+    .button.primary{background:var(--accent);border-color:var(--accent);color:white}
+    .button.primary:hover{background:var(--accent-hover)}
+    .button:disabled{opacity:.45;cursor:not-allowed}
+    button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 35%,transparent);outline-offset:2px}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+    .toolbar-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .select-label{color:var(--muted);font-size:13px}
+    select{min-height:38px;padding:6px 32px 6px 10px;font-size:13px}
+    .workspace{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
+    .panel{min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:15px;background:var(--surface);box-shadow:var(--shadow)}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border)}
+    .panel-title{font-weight:700;font-size:13px}
+    .count{color:var(--muted);font-size:11px;white-space:nowrap}
+    textarea,pre.output{display:block;width:100%;min-height:390px;max-height:65vh;margin:0;padding:16px;border:0;border-radius:0;
+      background:var(--editor);color:var(--text);font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:2}
+    textarea{resize:vertical;outline:none}
+    pre.output{overflow:auto;white-space:pre;overflow-wrap:normal}
+    pre.output.placeholder{color:var(--muted);white-space:pre-wrap}
+    .actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:16px 0}
+    .status{display:none;padding:11px 14px;margin:0 0 16px;border:1px solid;border-radius:11px;font-size:13px}
+    .status.success{display:block;color:var(--success);background:var(--success-bg);border-color:color-mix(in srgb,var(--success) 25%,transparent)}
+    .status.error{display:block;color:var(--danger);background:var(--danger-bg);border-color:color-mix(in srgb,var(--danger) 25%,transparent)}
+    .footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:12px}
+    .privacy{display:inline-flex;align-items:center;gap:7px}
+    .privacy:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--success)}
+    .hidden-input{display:none}
+    @media(max-width:760px){.shell{width:min(100% - 22px,620px);padding-top:20px}
+      .workspace{grid-template-columns:1fr}textarea,pre.output{min-height:260px;max-height:none}.topbar{margin-bottom:20px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">{ }</div>
+        <div><h1>JSON Buddy</h1><p class="tagline">A simple tool to format, validate and minify JSON.</p></div>
+      </div>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch colour theme" title="Switch colour theme">☾</button>
+    </header>
+
+    <section class="toolbar" aria-label="Editor options">
+      <div class="toolbar-group">
+        <button class="button" id="example-button" type="button">Load example</button>
+        <button class="button" id="open-button" type="button">Open file</button>
+        <button class="button" id="clear-button" type="button">Clear</button>
+        <input class="hidden-input" id="file-input" type="file" accept=".json,application/json,text/plain">
+      </div>
+      <div class="toolbar-group">
+        <label class="select-label" for="indent-select">Indentation</label>
+        <select id="indent-select">
+          <option value="2" selected>2 spaces</option><option value="4">4 spaces</option>
+          <option value="1">1 space</option><option value="tab">Tab</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="JSON editor">
+      <article class="panel">
+        <div class="panel-head"><span class="panel-title">Input JSON</span><span class="count" id="input-count">0 characters</span></div>
+        <textarea id="json-input" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Input JSON"
+          placeholder='Paste your JSON here…&#10;&#10;Example: {"name":"Alex","active":true}'></textarea>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><span class="panel-title">Output</span><span class="count" id="output-count">Waiting for input</span></div>
+        <pre class="output placeholder" id="json-output" aria-label="Formatted JSON output" tabindex="0">Your result will appear here.</pre>
+      </article>
+    </section>
+
+    <section class="actions" aria-label="JSON actions">
+      <button class="button primary" id="format-button" type="button">Format JSON</button>
+      <button class="button" id="minify-button" type="button">Minify</button>
+      <button class="button" id="validate-button" type="button">Validate</button>
+      <button class="button" id="copy-button" type="button" disabled>Copy output</button>
+      <button class="button" id="download-button" type="button" disabled>Download JSON</button>
+    </section>
+
+    <div class="status" id="status-message" role="status" aria-live="polite"></div>
+    <footer class="footer">
+      <span id="summary">Ready to process JSON.</span>
+      <span class="privacy">Your data stays in this browser. Nothing is uploaded.</span>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const input = $("json-input");
+      const output = $("json-output");
+      const status = $("status-message");
+      let currentOutput = "";
+
+      const example = {
+        application: "JSON Buddy",
+        version: "1.0",
+        features: ["Format JSON", "Validate JSON", "Minify JSON", "Download JSON"],
+        settings: { indentation: 2, theme: "light", enabled: true },
+        user: { name: "Alex", role: "Developer", active: true },
+        statistics: { users: 1250, rating: 4.8 }
+      };
+
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `status ${type}`;
+      }
+      function clearStatus() {
+        status.textContent = "";
+        status.className = "status";
+      }
+      function setOutput(value) {
+        currentOutput = value;
+        output.textContent = value || "No output generated.";
+        output.classList.toggle("placeholder", !value);
+        $("output-count").textContent = value ? `${value.length.toLocaleString()} characters` : "No output";
+        $("copy-button").disabled = !value;
+        $("download-button").disabled = !value;
+      }
+      function parseInput() {
+        if (!input.value.trim()) throw new Error("Enter or paste some JSON first.");
+        return JSON.parse(input.value);
+      }
+      function getIndentation() {
+        const selected = $("indent-select").value;
+        return selected === "tab" ? "\t" : Number(selected);
+      }
+      function showParseError(error) {
+        let message = error.message || "The JSON could not be parsed.";
+        const match = message.match(/position\s+(\d+)/i);
+        if (match) {
+          const position = Number(match[1]);
+          const beforeError = input.value.slice(0, position);
+          const line = beforeError.split("\n").length;
+          const column = position - beforeError.lastIndexOf("\n");
+          message += ` (line ${line}, column ${column})`;
+        }
+        showStatus(`Invalid JSON: ${message}`, "error");
+        setOutput("");
+        $("summary").textContent = "Correct the JSON and try again.";
+      }
+      function process(mode) {
+        try {
+          const data = parseInput();
+          if (mode === "validate") {
+            setOutput("");
+            showStatus("Valid JSON. No syntax errors were found.", "success");
+            $("output-count").textContent = "Valid";
+            $("summary").textContent = "Validation successful.";
+            return;
+          }
+          const result = mode === "minify"
+            ? JSON.stringify(data)
+            : JSON.stringify(data, null, getIndentation());
+          setOutput(result);
+          showStatus(mode === "minify" ? "JSON minified successfully." : "JSON formatted successfully.", "success");
+          $("summary").textContent = `${input.value.length.toLocaleString()} input characters · ${result.length.toLocaleString()} output characters`;
+        } catch (error) {
+          showParseError(error);
+        }
+      }
+      function updateInputCount() {
+        $("input-count").textContent = `${input.value.length.toLocaleString()} characters`;
+      }
+
+      input.addEventListener("input", () => {
+        updateInputCount();
+        clearStatus();
+        $("summary").textContent = "Input changed. Ready to process.";
+      });
+      $("format-button").addEventListener("click", () => process("format"));
+      $("minify-button").addEventListener("click", () => process("minify"));
+      $("validate-button").addEventListener("click", () => process("validate"));
+      $("example-button").addEventListener("click", () => {
+        input.value = JSON.stringify(example, null, 2);
+        input.dispatchEvent(new Event("input"));
+        process("format");
+      });
+      $("clear-button").addEventListener("click", () => {
+        input.value = "";
+        updateInputCount();
+        clearStatus();
+        setOutput("");
+        $("summary").textContent = "Ready to process JSON.";
+      });
+      $("open-button").addEventListener("click", () => $("file-input").click());
+      $("file-input").addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        try {
+          input.value = await file.text();
+          input.dispatchEvent(new Event("input"));
+          process("format");
+        } catch (error) {
+          showStatus(`Could not read file: ${error.message}`, "error");
+        } finally {
+          event.target.value = "";
+        }
+      });
+      $("copy-button").addEventListener("click", async () => {
+        if (!currentOutput) return;
+        try {
+          await navigator.clipboard.writeText(currentOutput);
+          showStatus("Output copied to clipboard.", "success");
+        } catch (error) {
+          showStatus("Clipboard access was blocked. Select the output and copy it manually.", "error");
+        }
+      });
+      $("download-button").addEventListener("click", () => {
+        if (!currentOutput) return;
+        const blob = new Blob([currentOutput], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "formatted.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showStatus("Download started: formatted.json", "success");
+      });
+      $("theme-toggle").addEventListener("click", () => {
+        const dark = document.documentElement.dataset.theme !== "dark";
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        $("theme-toggle").textContent = dark ? "☀" : "☾";
+        $("theme-toggle").title = dark ? "Switch to light theme" : "Switch to dark theme";
+        $("theme-toggle").setAttribute("aria-label", $("theme-toggle").title);
+      });
+      input.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") process("format");
+      });
+      updateInputCount();
+    })();
+  </script>
+</body>
+</html>
